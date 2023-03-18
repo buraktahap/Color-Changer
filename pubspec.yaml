@@ -40,7 +40,8 @@ dependencies:
   palette_generator: ^0.3.3+2
   image: ^3.0.2
   path_provider: ^2.0.13
-  quantize_dart: ^1.0.3
+  flutter_color_models: ^1.3.3+2
+  gallery_saver: ^2.3.2
 
 dev_dependencies:
   flutter_test:
