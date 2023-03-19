@@ -42,6 +42,7 @@ dependencies:
   path_provider: ^2.0.13
   flutter_color_models: ^1.3.3+2
   gallery_saver: ^2.3.2
+  flutter_image_compress: ^1.1.3
 
 dev_dependencies:
   flutter_test:
