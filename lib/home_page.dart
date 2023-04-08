@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:image/image.dart' as img;
 import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:math' as math;
+import 'package:http/http.dart' as http;
 //import math as math;
 
 class MyHomePage extends StatefulWidget {
@@ -26,6 +28,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final ImagePicker _picker = ImagePicker();
   Uint8List? _generatedImageData;
   bool _isLoading = false;
+  String? _resultImageBase64;
 
   Future<File> _convertHeicToPng(File heicFile) async {
     final directory = await getApplicationDocumentsDirectory();
@@ -61,7 +64,20 @@ class _MyHomePageState extends State<MyHomePage> {
     return pngFile;
   }
 
-  Future<void> _pickImage(File? file) async {
+  Future<String> applyColorTransfer(File sourceImage, File targetImage) async {
+    String apiUrl = 'http://192.168.0.25:5002/color_transfer';
+    String sourceBase64 = base64Encode(sourceImage.readAsBytesSync());
+    String targetBase64 = base64Encode(targetImage.readAsBytesSync());
+
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      body: {'source_image': sourceBase64, 'target_image': targetBase64},
+    );
+
+    return response.body;
+  }
+
+  Future<void> _pickImage(bool isFirstImage) async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       File imageFile = File(pickedFile.path);
@@ -72,9 +88,11 @@ class _MyHomePageState extends State<MyHomePage> {
         imageFile = await _convertHeifToPng(imageFile);
       }
       setState(() {
-        file = imageFile;
+        isFirstImage == true
+            ? _firstImage = imageFile
+            : _secondImage = imageFile;
       });
-      await _generatePalette(true);
+      await _generatePalette(isFirstImage);
     }
   }
 
@@ -90,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _isLoading = true;
       });
       final imageProvider =
-          FileImage(isFirstImage ? _firstImage! : _secondImage!);
+          isFirstImage ? FileImage(_firstImage!) : FileImage(_secondImage!);
       final paletteGenerator = await PaletteGenerator.fromImageProvider(
           imageProvider,
           maximumColorCount: 35);
@@ -292,15 +310,11 @@ class _MyHomePageState extends State<MyHomePage> {
       });
 
       // Load and downscale the images
-      const maxSize = 800;
       final image1 = img.decodeImage(await _firstImage!.readAsBytes());
-      final downscaledImage1 = downscaleImage(image1!, maxSize);
       final image2 = img.decodeImage(await _secondImage!.readAsBytes());
-      final downscaledImage2 = downscaleImage(image2!, maxSize);
 
       // Perform the palette-based recoloring
-      final transformedImage =
-          colorTransfer(downscaledImage1, downscaledImage2);
+      final transformedImage = colorTransfer(image1!, image2!);
 
       // Save the modified image locally
       final directory = await getApplicationDocumentsDirectory();
@@ -379,7 +393,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: () => _pickImage(_firstImage),
+                  onPressed: () => _pickImage(true),
                   child: const Center(child: Text('Select Color Source')),
                 ),
                 if (_firstImage != null) Image.file(_firstImage!),
@@ -403,7 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: () => _pickImage(_secondImage),
+                  onPressed: () => _pickImage(false),
                   child: const Center(child: Text('Select Destination Image')),
                 ),
                 if (_secondImage != null) Image.file(_secondImage!),
@@ -458,6 +472,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       ],
                     ),
                   ),
+                SizedBox(height: 20),
+                _resultImageBase64 != null
+                    ? Image.memory(base64Decode(_resultImageBase64!))
+                    : Text('Result image will be displayed here'),
               ],
             ),
           );
