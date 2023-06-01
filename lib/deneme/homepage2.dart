@@ -3,14 +3,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:flutter/foundation.dart';
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+class MyHomePage2 extends StatefulWidget {
+  const MyHomePage2({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MyHomePage2> createState() => _MyHomePage2State();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePage2State extends State<MyHomePage2> {
   img.Image? _sourceImage;
   img.Image? _paletteImage;
   Uint8List? _generatedImageData;
@@ -110,7 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List<_Task> _createTasks(img.Image sourceImage, List<int> paletteColors) {
-    final int numTasks =
+    const int numTasks =
         1; // Adjust this value based on the number of cores in your device
     final int numRows = (sourceImage.height / numTasks).ceil();
     final List<_Task> tasks = [];
@@ -219,7 +219,7 @@ void main() {
         appBar: AppBar(
           title: const Text('Image Color Palette'),
         ),
-        body: const MyHomePage(),
+        body: const MyHomePage2(),
       ),
     ),
   );
