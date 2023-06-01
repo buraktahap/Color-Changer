@@ -1,19 +1,24 @@
 import 'dart:io';
+import 'dart:math';
 
+import 'package:color_changer/expansion_tile_v2.dart' as v2;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
 
-class ImageUploadSection extends StatelessWidget {
-  final File? image;
+import 'edit_page.dart';
+
+class ImageUploadSection extends StatefulWidget {
+  File? image;
   final PaletteGenerator? palette;
   final void Function(File? file) onImageSelected;
   final void Function() onRemoveImage;
   final String title;
 
-  const ImageUploadSection({
+  ImageUploadSection({
     Key? key,
     required this.image,
     required this.palette,
@@ -23,10 +28,75 @@ class ImageUploadSection extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<ImageUploadSection> createState() => ImageUploadSectionState();
+}
+
+class ImageUploadSectionState extends State<ImageUploadSection> {
+  Uint8List? imageData;
+  bool isExpanded = false;
+  final v2.ExpansionTileController expansionTileController =
+      v2.ExpansionTileController();
+  void toggleExpansion() {
+    setState(() {
+      expansionTileController.expand();
+    });
+  }
+
+  void toogleCollapse() {
+    setState(() {
+      expansionTileController.collapse();
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadImage();
+  }
+
+  void loadImage() async {
+    var bytes = await widget.image?.readAsBytes();
+    setState(() {
+      imageData = bytes;
+    });
+  }
+
+  void _editImage() async {
+    final editedImage = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WidgetEditableImage(imageFile: widget.image!),
+      ),
+    );
+
+    if (editedImage != null && editedImage is Uint8List) {
+      final directory = await getApplicationDocumentsDirectory();
+      final imagePath = "${directory.path}/${DateTime.now()}.jpg";
+      final imageFile = File(imagePath);
+
+      await imageFile.writeAsBytes(editedImage);
+
+      setState(() {
+        widget.image = imageFile;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: ExpansionTile(
+      child: v2.ExpansionTileV2(
+        controller: expansionTileController,
+        onExpansionChanged: (value) {
+          setState(() {
+            isExpanded = value;
+          });
+        },
+        trailing: Transform.rotate(
+          angle: isExpanded ? pi : 0,
+          child: const Icon(Icons.keyboard_arrow_down_sharp),
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(25),
           side: BorderSide(
@@ -41,19 +111,21 @@ class ImageUploadSection extends StatelessWidget {
         collapsedShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(25),
         ),
+        clipBehavior: Clip.antiAlias,
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         initiallyExpanded: true,
         tilePadding: const EdgeInsets.all(8),
-        title: Text(image != null ? title : "Select $title"),
+        title: Text(
+            widget.image != null ? widget.title : "Select ${widget.title}"),
         children: [
-          image != null
+          widget.image != null
               ? Column(
                   children: [
                     Stack(
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(25),
-                          child: Image.file(image!),
+                          child: Image.file(widget.image!),
                         ),
                         Positioned(
                           right: 0,
@@ -74,16 +146,42 @@ class ImageUploadSection extends StatelessWidget {
                                 const EdgeInsets.all(0),
                               ),
                             ),
-                            onPressed: () => onRemoveImage(),
+                            onPressed: () => widget.onRemoveImage(),
                             icon: const Icon(Icons.close),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: IconButton(
+                            iconSize: 20,
+                            color: Colors.black,
+                            constraints: const BoxConstraints(
+                              minWidth: 30,
+                              minHeight: 30,
+                            ),
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(
+                                  Colors.blue.shade200),
+                              shape: MaterialStateProperty.all(
+                                const CircleBorder(),
+                              ),
+                              padding: MaterialStateProperty.all(
+                                const EdgeInsets.all(0),
+                              ),
+                            ),
+                            onPressed: () => setState(() {
+                              _editImage();
+                            }),
+                            icon: const Icon(Icons.edit),
                           ),
                         ),
                       ],
                     ),
-                    if (palette != null) ...[
-                      const SizedBox(height: 8),
-                      const Text('Color Palette:'),
-                      _buildPaletteColors(palette!.paletteColors),
+                    if (widget.palette != null) ...[
+                      // const SizedBox(height: 8),
+                      // const Text('Color Palette:'),
+                      // _buildPaletteColors(palette!.paletteColors),
                     ],
                   ],
                 )
@@ -135,7 +233,7 @@ class ImageUploadSection extends StatelessWidget {
         imageFile =
             await _convertToPng(imageFile, pickedFile.path.split('.').last);
       }
-      onImageSelected(imageFile);
+      widget.onImageSelected(imageFile);
     }
   }
 

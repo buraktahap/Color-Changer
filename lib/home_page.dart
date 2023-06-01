@@ -23,6 +23,7 @@ class _MyHomePageState extends State<MyHomePage> {
   PaletteGenerator? _palette2;
   Uint8List? _generatedImageData;
   bool _isLoading = false;
+  GlobalKey<ImageUploadSectionState> imageKey = GlobalKey();
 
   @override
   void initState() {
@@ -39,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return _isLoading
         ? const Padding(
             padding: EdgeInsets.all(8.0),
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: CircularProgressIndicator.adaptive()),
           )
         : SingleChildScrollView(
             child: Column(
@@ -84,7 +85,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _buildGenerateButton(),
                 if (_generatedImageData != null) _buildGeneratedImage(),
                 if (_generatedImageData == null)
-                  Text('Generated Image will be displayed here'),
+                  const Text('Generated Image will be displayed here'),
               ],
             ),
           );
@@ -98,7 +99,12 @@ class _MyHomePageState extends State<MyHomePage> {
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
         ),
-        onPressed: () => _generateNewImage(),
+        onPressed: () {
+          setState(() {
+            imageKey.currentState?.toggleExpansion();
+          });
+          _generateNewImage();
+        },
         child: const Center(child: Text('Generate')),
       ),
     );
@@ -113,7 +119,36 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(25),
-            child: Image.memory(_generatedImageData!),
+            child: Stack(children: [
+              Image.memory(_generatedImageData!),
+              Positioned(
+                right: 0,
+                child: IconButton(
+                  iconSize: 20,
+                  color: Colors.black,
+                  constraints: const BoxConstraints(
+                    minWidth: 30,
+                    minHeight: 30,
+                  ),
+                  style: ButtonStyle(
+                    backgroundColor:
+                        MaterialStateProperty.all(Colors.red.shade200),
+                    shape: MaterialStateProperty.all(
+                      const CircleBorder(),
+                    ),
+                    padding: MaterialStateProperty.all(
+                      const EdgeInsets.all(0),
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _generatedImageData = null;
+                    });
+                  },
+                  icon: const Icon(Icons.close),
+                ),
+              ),
+            ]),
           ),
           TextButton(
             style: TextButton.styleFrom(

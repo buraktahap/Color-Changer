@@ -14,10 +14,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: const Color.fromARGB(255, 206, 218, 224),
+        splashColor: Colors.transparent,
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: const Color.fromARGB(255, 23, 24, 25),
+        splashColor: Colors.transparent,
       ),
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
