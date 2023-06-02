@@ -8,6 +8,7 @@ import 'package:gallery_saver/gallery_saver.dart';
 import 'package:image/image.dart' as img;
 import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -94,11 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildGenerateButton() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: TextButton(
-        style: TextButton.styleFrom(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-        ),
+      child: FilledButton(
         onPressed: () {
           setState(() {
             imageKey.currentState?.toggleExpansion();
@@ -150,23 +147,42 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ]),
           ),
-          TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => _saveGeneratedImage(),
-            child: const Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Save Generated Image'),
-                  Icon(Icons.save),
-                ],
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => _saveGeneratedImage(),
+                  child: const Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Save Generated Image'),
+                        Icon(Icons.save),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              //share button
+              FilledButton(
+                onPressed: () => _shareGeneratedImage(),
+                child: const Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Share'),
+                      Icon(Icons.share),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -413,5 +429,14 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     return result;
+  }
+
+  _shareGeneratedImage() async {
+    //share functionality with share_plus package
+    final directory = await getApplicationDocumentsDirectory();
+    final generatedImagePath = '${directory.path}/generated_image.png';
+    Share.shareFiles(
+      [generatedImagePath],
+    );
   }
 }
