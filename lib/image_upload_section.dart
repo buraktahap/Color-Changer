@@ -187,9 +187,38 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
                 )
               : Column(
                   children: [
-                    ElevatedButton(
-                      onPressed: () => _pickImage(context),
-                      child: const Text('Pick Image'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _pickImageFromGallery(context),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('Pick Image'),
+                                SizedBox(width: 8),
+                                Icon(Icons.photo),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _pickImageFromCamera(context),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('Take Photo'),
+                                SizedBox(width: 8),
+                                Icon(Icons.camera_alt),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -223,9 +252,23 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
     );
   }
 
-  Future<void> _pickImage(BuildContext context) async {
+  Future<void> _pickImageFromGallery(BuildContext context) async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      File? imageFile = File(pickedFile.path);
+      if (pickedFile.path.toLowerCase().endsWith('.heic') ||
+          pickedFile.path.toLowerCase().endsWith('.heif')) {
+        imageFile =
+            await _convertToPng(imageFile, pickedFile.path.split('.').last);
+      }
+      widget.onImageSelected(imageFile);
+    }
+  }
+
+  Future<void> _pickImageFromCamera(BuildContext context) async {
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       File? imageFile = File(pickedFile.path);
       if (pickedFile.path.toLowerCase().endsWith('.heic') ||
