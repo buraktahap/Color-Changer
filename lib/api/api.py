@@ -9,8 +9,8 @@ app = Flask(__name__)
 
 @app.route('/convert', methods=['POST'])
 def color_transfer():
-    source_image: FileStorage = request.files['source_image']
-    target_image: FileStorage = request.files['target_image']
+    source_image: FileStorage = request.files['target_image']
+    target_image: FileStorage = request.files['source_image']
 
     # Load images and apply color transformation
     s = cv2.cvtColor(cv2.imdecode(np.fromstring(source_image.read(), np.uint8), cv2.IMREAD_COLOR), cv2.COLOR_BGR2LAB)

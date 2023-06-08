@@ -463,16 +463,22 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       _isLoading = true;
       var request = http.MultipartRequest(
-          'POST', Uri.parse('http://192.168.1.53:5000/convert'));
+          'POST', Uri.parse('http://127.0.0.1:5000/convert'));
       request.files.add(
           await http.MultipartFile.fromPath('source_image', sourceImage.path));
       request.files.add(
           await http.MultipartFile.fromPath('target_image', targetImage.path));
 
-      http.StreamedResponse response = await request.send();
+      var response = await request.send();
+      var responseStream = response.stream;
+
       if (response.statusCode == 200) {
-        print(await response.stream.bytesToString());
-        return await response.stream.bytesToString();
+        //response body is a Unit8List
+        var responseBody =
+            await responseStream.toBytes(); // Read the stream once
+        //convert the response body to an image
+        var generatedImage = img.decodeImage(responseBody);
+        return generatedImage;
       } else {
         print(response.reasonPhrase);
       }
