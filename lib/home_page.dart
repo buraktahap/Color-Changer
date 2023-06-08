@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:http/http.dart' as http;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -153,11 +154,11 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(
                 child: FilledButton(
                   onPressed: () => _saveGeneratedImage(),
-                  child: const Center(
+                  child: Center(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                      children: const [
                         Text('Save Generated Image'),
                         Icon(Icons.save),
                       ],
@@ -169,11 +170,11 @@ class _MyHomePageState extends State<MyHomePage> {
               //share button
               FilledButton(
                 onPressed: () => _shareGeneratedImage(),
-                child: const Center(
+                child: Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                    children: const [
                       Text('Share'),
                       Icon(Icons.share),
                     ],
@@ -238,12 +239,14 @@ class _MyHomePageState extends State<MyHomePage> {
       // Load and downscale the images
       final image1 = img.decodeImage(await _firstImage!.readAsBytes());
       final image2 = img.decodeImage(await _secondImage!.readAsBytes());
-      final downscaledImage1 = downscaleImage(image1!, 800);
-      final downscaledImage2 = downscaleImage(image2!, 800);
+      // final downscaledImage1 = upscaleImage(image1!, 3000);
+      // final downscaledImage2 = upscaleImage(image2!, 3000);
 
-      // Perform the palette-based recoloring
-      final transformedImage =
-          colorTransfer(downscaledImage1, downscaledImage2);
+      // // Perform the palette-based recoloring
+      // final transformedImage =
+      //     colorTransfer(downscaledImage1, downscaledImage2);
+
+      final transformedImage = await uploadImage(_firstImage!, _secondImage!);
 
       // Save the modified image locally
       final directory = await getApplicationDocumentsDirectory();
@@ -277,6 +280,22 @@ class _MyHomePageState extends State<MyHomePage> {
       newHeight = (newWidth / aspectRatio).round();
     } else {
       newHeight = maxSize;
+      newWidth = (newHeight * aspectRatio).round();
+    }
+
+    return img.copyResize(image, width: newWidth, height: newHeight);
+  }
+
+  img.Image upscaleImage(img.Image image, int minSize) {
+    double aspectRatio = image.width / image.height;
+    int newWidth;
+    int newHeight;
+
+    if (image.width > image.height) {
+      newWidth = minSize;
+      newHeight = (newWidth / aspectRatio).round();
+    } else {
+      newHeight = minSize;
       newWidth = (newHeight * aspectRatio).round();
     }
 
@@ -438,5 +457,29 @@ class _MyHomePageState extends State<MyHomePage> {
     Share.shareFiles(
       [generatedImagePath],
     );
+  }
+
+  Future uploadImage(File sourceImage, File targetImage) async {
+    try {
+      _isLoading = true;
+      var request = http.MultipartRequest(
+          'POST', Uri.parse('http://192.168.1.53:5000/convert'));
+      request.files.add(
+          await http.MultipartFile.fromPath('source_image', sourceImage.path));
+      request.files.add(
+          await http.MultipartFile.fromPath('target_image', targetImage.path));
+
+      http.StreamedResponse response = await request.send();
+      if (response.statusCode == 200) {
+        print(await response.stream.bytesToString());
+        return await response.stream.bytesToString();
+      } else {
+        print(response.reasonPhrase);
+      }
+      _isLoading = false;
+    } catch (e) {
+      print(e);
+      _isLoading = false;
+    }
   }
 }

@@ -194,9 +194,9 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () => _pickImageFromGallery(context),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
+                              children: const [
                                 Text('Pick Image'),
                                 SizedBox(width: 8),
                                 Icon(Icons.photo),
@@ -208,9 +208,9 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () => _pickImageFromCamera(context),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
+                              children: const [
                                 Text('Take Photo'),
                                 SizedBox(width: 8),
                                 Icon(Icons.camera_alt),
