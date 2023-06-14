@@ -1,9 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
+import 'package:color_changer/image_repository.dart';
 import 'package:color_changer/image_upload_section.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_color_models/flutter_color_models.dart';
 import 'package:gallery_saver/gallery_saver.dart';
 import 'package:image/image.dart' as img;
 import 'package:palette_generator/palette_generator.dart';
@@ -11,18 +11,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
 
+final ImageRepository sourceImageRepository = ImageRepository();
+final ImageRepository targetImageRepository = ImageRepository();
+PaletteGenerator? editedPalette;
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MyHomePage> createState() => MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class MyHomePageState extends State<MyHomePage> {
   File? _firstImage;
   File? _secondImage;
-  PaletteGenerator? _palette1;
-  PaletteGenerator? _palette2;
   Uint8List? _generatedImageData;
   bool _isLoading = false;
   GlobalKey<ImageUploadSectionState> imageKey = GlobalKey();
@@ -51,36 +53,38 @@ class _MyHomePageState extends State<MyHomePage> {
                 ImageUploadSection(
                   title: "Color Source Image",
                   image: _firstImage,
-                  palette: _palette1,
+                  imageRepository: sourceImageRepository,
                   onImageSelected: (file) {
                     setState(() {
                       _firstImage = file;
-                      _palette1 = null;
+                      sourceImageRepository.palette = null;
+                      sourceImageRepository.paletteCopy = null;
                     });
-                    _generatePalette(true);
                   },
                   onRemoveImage: () {
                     setState(() {
                       _firstImage = null;
-                      _palette1 = null;
+                      sourceImageRepository.palette = null;
+                      sourceImageRepository.paletteCopy = null;
                     });
                   },
                 ),
                 ImageUploadSection(
                   title: "Target Image",
                   image: _secondImage,
-                  palette: _palette2,
+                  imageRepository: targetImageRepository,
                   onImageSelected: (file) {
                     setState(() {
                       _secondImage = file;
-                      _palette2 = null;
+                      targetImageRepository.palette = null;
+                      targetImageRepository.paletteCopy = null;
                     });
-                    _generatePalette(false);
                   },
                   onRemoveImage: () {
                     setState(() {
                       _secondImage = null;
-                      _palette2 = null;
+                      targetImageRepository.palette = null;
+                      targetImageRepository.paletteCopy = null;
                     });
                   },
                 ),
@@ -154,11 +158,11 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(
                 child: FilledButton(
                   onPressed: () => _saveGeneratedImage(),
-                  child: Center(
+                  child: const Center(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Text('Save Generated Image'),
                         Icon(Icons.save),
                       ],
@@ -170,11 +174,11 @@ class _MyHomePageState extends State<MyHomePage> {
               //share button
               FilledButton(
                 onPressed: () => _shareGeneratedImage(),
-                child: Center(
+                child: const Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text('Share'),
                       Icon(Icons.share),
                     ],
@@ -189,41 +193,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Future<void> _generatePalette(bool isFirstImage) async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-      final imageProvider =
-          isFirstImage ? FileImage(_firstImage!) : FileImage(_secondImage!);
-      final paletteGenerator = await PaletteGenerator.fromImageProvider(
-        imageProvider,
-        maximumColorCount: 10,
-      );
-
-      setState(() {
-        if (isFirstImage) {
-          _palette1 = paletteGenerator;
-        } else {
-          _palette2 = paletteGenerator;
-        }
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error generating palette: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   Future<void> _generateNewImage() async {
     if (_firstImage == null ||
         _secondImage == null ||
-        _palette1 == null ||
-        _palette2 == null) {
+        sourceImageRepository.palette == null ||
+        targetImageRepository.palette == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select both images and generate palettes.'),
@@ -236,17 +210,17 @@ class _MyHomePageState extends State<MyHomePage> {
         _isLoading = true;
       });
 
-      // Load and downscale the images
-      final image1 = img.decodeImage(await _firstImage!.readAsBytes());
-      final image2 = img.decodeImage(await _secondImage!.readAsBytes());
-      // final downscaledImage1 = upscaleImage(image1!, 3000);
-      // final downscaledImage2 = upscaleImage(image2!, 3000);
+      // final transformedImage = await uploadImageWithPalette(
+      //   _firstImage!,
+      //   _secondImage!,
+      //   sourceImageRepository.palette!,
+      //   sourceImageRepository.paletteCopy!,
+      // );
 
-      // // Perform the palette-based recoloring
-      // final transformedImage =
-      //     colorTransfer(downscaledImage1, downscaledImage2);
-
-      final transformedImage = await uploadImage(_firstImage!, _secondImage!);
+      final transformedImage = await uploadImage(
+        _firstImage!,
+        _secondImage!,
+      );
 
       // Save the modified image locally
       final directory = await getApplicationDocumentsDirectory();
@@ -268,38 +242,6 @@ class _MyHomePageState extends State<MyHomePage> {
         _isLoading = false;
       });
     }
-  }
-
-  img.Image downscaleImage(img.Image image, int maxSize) {
-    double aspectRatio = image.width / image.height;
-    int newWidth;
-    int newHeight;
-
-    if (image.width > image.height) {
-      newWidth = maxSize;
-      newHeight = (newWidth / aspectRatio).round();
-    } else {
-      newHeight = maxSize;
-      newWidth = (newHeight * aspectRatio).round();
-    }
-
-    return img.copyResize(image, width: newWidth, height: newHeight);
-  }
-
-  img.Image upscaleImage(img.Image image, int minSize) {
-    double aspectRatio = image.width / image.height;
-    int newWidth;
-    int newHeight;
-
-    if (image.width > image.height) {
-      newWidth = minSize;
-      newHeight = (newWidth / aspectRatio).round();
-    } else {
-      newHeight = minSize;
-      newWidth = (newHeight * aspectRatio).round();
-    }
-
-    return img.copyResize(image, width: newWidth, height: newHeight);
   }
 
   Future<void> _saveGeneratedImage() async {
@@ -325,137 +267,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  img.Image colorTransfer(img.Image source, img.Image target) {
-    // Helper function to convert img.Image to List<List<LabColor>>
-    Map<int, LabColor> labColorCache = {};
-
-    List<List<LabColor>> imageToLab(img.Image image) {
-      List<List<LabColor>> labMatrix = List.generate(
-        image.height,
-        (_) => List.generate(
-          image.width,
-          (_) => const LabColor(0, 0, 0),
-        ),
-      );
-
-      for (int y = 0; y < image.height; y++) {
-        for (int x = 0; x < image.width; x++) {
-          int pixelValue = image.getPixel(x, y);
-          if (!labColorCache.containsKey(pixelValue)) {
-            Color pixelColor = Color(pixelValue);
-            labColorCache[pixelValue] = LabColor.from(
-              RgbColor(pixelColor.red, pixelColor.green, pixelColor.blue),
-            );
-          }
-          labMatrix[y][x] = labColorCache[pixelValue]!;
-        }
-      }
-      return labMatrix;
-    }
-
-    // Helper function to calculate mean and standard deviation for each channel
-    List<num> meanStdDev(List<num> values) {
-      num mean = 0;
-      num m2 = 0;
-      for (int i = 0; i < values.length; i++) {
-        num delta = values[i] - mean;
-        mean += delta / (i + 1);
-        m2 += delta * (values[i] - mean);
-      }
-      num variance = m2 / (values.length - 1);
-      num stdDev = math.sqrt(variance);
-      return [mean, stdDev];
-    }
-
-    List<List<LabColor>> sourceLab = imageToLab(source);
-    List<List<LabColor>> targetLab = imageToLab(target);
-
-    List<num> sourceL = [];
-    List<num> sourceA = [];
-    List<num> sourceB = [];
-    List<num> targetL = [];
-    List<num> targetA = [];
-    List<num> targetB = [];
-
-    for (int y = 0; y < source.height; y++) {
-      for (int x = 0; x < source.width; x++) {
-        sourceL.add(sourceLab[y][x].lightness);
-        sourceA.add(sourceLab[y][x].a);
-        sourceB.add(sourceLab[y][x].b);
-      }
-    }
-
-    for (int y = 0; y < target.height; y++) {
-      for (int x = 0; x < target.width; x++) {
-        targetL.add(targetLab[y][x].lightness);
-        targetA.add(targetLab[y][x].a);
-        targetB.add(targetLab[y][x].b);
-      }
-    }
-
-    List<num> sourceLStats = meanStdDev(sourceL);
-    List<num> sourceAStats = meanStdDev(sourceA);
-    List<num> sourceBStats = meanStdDev(sourceB);
-    List<num> targetLStats = meanStdDev(targetL);
-    List<num> targetAStats = meanStdDev(targetA);
-    List<num> targetBStats = meanStdDev(targetB);
-
-    img.Image result = img.Image(target.width, target.height);
-    for (int y = 0; y < target.height; y++) {
-      for (int x = 0; x < target.width; x++) {
-        LabColor lab = targetLab[y][x];
-
-        num adjustedL = (lab.lightness - targetLStats[0]) *
-                (sourceLStats[1] / targetLStats[1]) +
-            sourceLStats[0];
-        num adjustedA =
-            (lab.a - targetAStats[0]) * (sourceAStats[1] / targetAStats[1]) +
-                sourceAStats[0];
-        num adjustedB =
-            (lab.b - targetBStats[0]) * (sourceBStats[1] / targetBStats[1]) +
-                sourceBStats[0];
-
-        LabColor adjustedLab = LabColor(
-          adjustedL >= 100
-              ? 100
-              : adjustedL <= 0
-                  ? 0
-                  : adjustedL,
-          adjustedA >= 127
-              ? 127
-              : adjustedA <= -128
-                  ? -128
-                  : adjustedA,
-          adjustedB >= 127
-              ? 127
-              : adjustedB <= -128
-                  ? -128
-                  : adjustedB,
-        );
-        RgbColor adjustedRgb = adjustedLab.toColor().toRgbColor();
-
-        result.setPixel(
-          x,
-          y,
-          Color.fromRGBO(
-            adjustedRgb.red,
-            adjustedRgb.green,
-            adjustedRgb.blue,
-            1,
-          ).value,
-        );
-      }
-    }
-
-    return result;
-  }
-
   _shareGeneratedImage() async {
     //share functionality with share_plus package
     final directory = await getApplicationDocumentsDirectory();
     final generatedImagePath = '${directory.path}/generated_image.png';
-    Share.shareFiles(
-      [generatedImagePath],
+    Share.shareXFiles(
+      [XFile(generatedImagePath)],
     );
   }
 
@@ -463,11 +280,57 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       _isLoading = true;
       var request = http.MultipartRequest(
-          'POST', Uri.parse('http://127.0.0.1:5000/convert'));
+          'POST', Uri.parse('http://127.0.0.1:5003/convert'));
       request.files.add(
           await http.MultipartFile.fromPath('source_image', sourceImage.path));
       request.files.add(
           await http.MultipartFile.fromPath('target_image', targetImage.path));
+
+      var response = await request.send();
+      var responseStream = response.stream;
+
+      if (response.statusCode == 200) {
+        //response body is a Unit8List
+        var responseBody =
+            await responseStream.toBytes(); // Read the stream once
+        //convert the response body to an image
+        var generatedImage = img.decodeImage(responseBody);
+        return generatedImage;
+      } else {
+        print(response.reasonPhrase);
+      }
+      _isLoading = false;
+    } catch (e) {
+      print(e);
+      _isLoading = false;
+    }
+  }
+
+  Future uploadImageWithPalette(File sourceImage, File targetImage,
+      PaletteGenerator paletteColors, PaletteGenerator editedColors) async {
+    try {
+      _isLoading = true;
+      var request = http.MultipartRequest(
+          'POST', Uri.parse('http://127.0.0.1:5003/convert_with_palette'));
+      request.files.add(
+          await http.MultipartFile.fromPath('source_image', sourceImage.path));
+      request.files.add(
+          await http.MultipartFile.fromPath('target_image', targetImage.path));
+
+      // Convert the palettes to the correct format
+      var originalPalette = paletteColors.colors
+          .map((color) => [color.red, color.green, color.blue])
+          .toList();
+      var editedPalette = editedColors.colors
+          .map((color) => [color.red, color.green, color.blue])
+          .toList();
+
+      // Convert the palettes to JSON strings
+
+      var originalPaletteJson = jsonEncode(originalPalette);
+      var editedPaletteJson = jsonEncode(editedPalette);
+      request.fields['original_palette'] = originalPaletteJson;
+      request.fields['edited_palette'] = editedPaletteJson;
 
       var response = await request.send();
       var responseStream = response.stream;

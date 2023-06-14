@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:color_changer/expansion_tile_v2.dart' as v2;
+import 'package:color_changer/home_page.dart';
+import 'package:color_changer/image_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -13,18 +15,18 @@ import 'edit_page.dart';
 
 class ImageUploadSection extends StatefulWidget {
   File? image;
-  final PaletteGenerator? palette;
   final void Function(File? file) onImageSelected;
   final void Function() onRemoveImage;
   final String title;
+  final ImageRepository imageRepository;
 
   ImageUploadSection({
     Key? key,
     required this.image,
-    required this.palette,
     required this.onImageSelected,
     required this.onRemoveImage,
     required this.title,
+    required this.imageRepository,
   }) : super(key: key);
 
   @override
@@ -178,10 +180,10 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
                         ),
                       ],
                     ),
-                    if (widget.palette != null) ...[
-                      // const SizedBox(height: 8),
-                      // const Text('Color Palette:'),
-                      // _buildPaletteColors(palette!.paletteColors),
+                    if (widget.imageRepository.palette != null) ...[
+                      const SizedBox(height: 8),
+                      const Text('Color Palette:'),
+                      _buildPaletteColors(),
                     ],
                   ],
                 )
@@ -194,9 +196,9 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () => _pickImageFromGallery(context),
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Text('Pick Image'),
                                 SizedBox(width: 8),
                                 Icon(Icons.photo),
@@ -208,9 +210,9 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () => _pickImageFromCamera(context),
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Text('Take Photo'),
                                 SizedBox(width: 8),
                                 Icon(Icons.camera_alt),
@@ -232,18 +234,21 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
     );
   }
 
-  Widget _buildPaletteColors(List<PaletteColor> colors) {
+  Widget _buildPaletteColors() {
+    // Copy list
     return Wrap(
-      children: colors.map((color) {
+      children: widget.imageRepository.paletteCopy!.paletteColors.map((color) {
         return Padding(
           padding: const EdgeInsets.all(2.0),
           child: GestureDetector(
             onTap: () {
-              colors.remove(color);
+              setState(() {
+                widget.imageRepository.paletteCopy!.paletteColors.remove(color);
+              });
             },
             child: Container(
-              width: 10,
-              height: 10,
+              width: 15,
+              height: 15,
               color: color.color,
             ),
           ),
@@ -262,7 +267,10 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
         imageFile =
             await _convertToPng(imageFile, pickedFile.path.split('.').last);
       }
-      widget.onImageSelected(imageFile);
+      setState(() {
+        widget.onImageSelected(imageFile);
+        _generatePalette(imageFile!);
+      });
     }
   }
 
@@ -276,7 +284,32 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
         imageFile =
             await _convertToPng(imageFile, pickedFile.path.split('.').last);
       }
-      widget.onImageSelected(imageFile);
+      setState(() {
+        widget.onImageSelected(imageFile);
+        _generatePalette(imageFile!);
+      });
+      editedPalette = widget.imageRepository.palette;
+    }
+  }
+
+  Future<void> _generatePalette(File image) async {
+    try {
+      final imageProvider = FileImage(image);
+      final paletteGenerator = await PaletteGenerator.fromImageProvider(
+        imageProvider,
+        maximumColorCount: 10,
+      );
+      PaletteGenerator paletteGeneratorCopy = PaletteGenerator.fromColors(
+        [...paletteGenerator.paletteColors],
+      );
+      setState(() {
+        widget.imageRepository.palette = paletteGenerator;
+        widget.imageRepository.paletteCopy = paletteGeneratorCopy;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error generating palette: $e')),
+      );
     }
   }
 
