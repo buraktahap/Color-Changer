@@ -100,14 +100,29 @@ class MyHomePageState extends State<MyHomePage> {
   Widget _buildGenerateButton() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: FilledButton(
-        onPressed: () {
-          setState(() {
-            imageKey.currentState?.toggleExpansion();
-          });
-          _generateNewImage();
-        },
-        child: const Center(child: Text('Generate')),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FilledButton(
+            onPressed: () {
+              setState(() {
+                imageKey.currentState?.toggleExpansion();
+              });
+              _generateNewImage(isPaletteBased: true);
+            },
+            child: const Center(child: Text('Generate From Palette')),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () {
+              setState(() {
+                imageKey.currentState?.toggleExpansion();
+              });
+              _generateNewImage(isPaletteBased: false);
+            },
+            child: const Center(child: Text('Generate')),
+          ),
+        ],
       ),
     );
   }
@@ -193,7 +208,7 @@ class MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Future<void> _generateNewImage() async {
+  Future<void> _generateNewImage({required bool isPaletteBased}) async {
     if (_firstImage == null ||
         _secondImage == null ||
         sourceImageRepository.palette == null ||
@@ -210,17 +225,22 @@ class MyHomePageState extends State<MyHomePage> {
         _isLoading = true;
       });
 
-      // final transformedImage = await uploadImageWithPalette(
+      final transformedImage = isPaletteBased
+          ? await uploadImageWithPalette(
+              _firstImage!,
+              _secondImage!,
+              sourceImageRepository.palette!,
+              sourceImageRepository.paletteCopy!,
+            )
+          : await uploadImage(
+              _firstImage!,
+              _secondImage!,
+            );
+
+      // final transformedImage = await uploadImage(
       //   _firstImage!,
       //   _secondImage!,
-      //   sourceImageRepository.palette!,
-      //   sourceImageRepository.paletteCopy!,
       // );
-
-      final transformedImage = await uploadImage(
-        _firstImage!,
-        _secondImage!,
-      );
 
       // Save the modified image locally
       final directory = await getApplicationDocumentsDirectory();

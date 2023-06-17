@@ -297,7 +297,7 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
       final imageProvider = FileImage(image);
       final paletteGenerator = await PaletteGenerator.fromImageProvider(
         imageProvider,
-        maximumColorCount: 10,
+        maximumColorCount: 30,
       );
       PaletteGenerator paletteGeneratorCopy = PaletteGenerator.fromColors(
         [...paletteGenerator.paletteColors],
