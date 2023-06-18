@@ -64,7 +64,7 @@ def color_transfer_with_palette():
 
     # Apply color transfer
     t = ((t - t_mean) * (s_std / t_std)) + s_mean
-    t = np.round(t).astype(np.float32)  # make sure t is a float32 array
+    t = np.round(t).astype(np.float32)
     t = np.clip(t, 0, 255)
 
     # Convert back to 8-bit unsigned integer
@@ -100,21 +100,15 @@ def color_transfer():
     s_mean, s_std = get_mean_and_std(s)
     t_mean, t_std = get_mean_and_std(t)
 
-    height, width, channel = s.shape
-    for i in range(0,height):
-        for j in range(0,width):
-            for k in range(0,channel):
-                x = s[i,j,k]
-                x = ((x-s_mean[k])*(t_std[k]/s_std[k]))+t_mean[k]
-                if math.isnan(x):
-                    continue  # Skip NaN values
-                x = round(x)
-                x = 0 if x<0 else x
-                x = 255 if x>255 else x
-                s[i,j,k] = x
+    # Apply color transfer
+    s = ((s - s_mean) * (t_std / s_std)) + t_mean
+    s = np.round(s).astype(np.float32)
+    s = np.clip(s, 0, 255)
 
-    s = cv2.cvtColor(s,cv2.COLOR_LAB2BGR)
+    # Convert back to 8-bit unsigned integer
+    s = s.astype(np.uint8)
 
+    s = cv2.cvtColor(t, cv2.COLOR_LAB2BGR)
     # Convert array into bytes, and then save in memory file
     is_success, im_buf_arr = cv2.imencode(".jpg", s)
     byte_im = io.BytesIO(im_buf_arr.tobytes())

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:color_changer/image_repository.dart';
 import 'package:color_changer/image_upload_section.dart';
+import 'package:color_changer/settings_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gallery_saver/gallery_saver.dart';
@@ -41,60 +42,74 @@ class MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return _isLoading
-        ? const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Center(child: CircularProgressIndicator.adaptive()),
-          )
-        : SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ImageUploadSection(
-                  title: "Color Source Image",
-                  image: _firstImage,
-                  imageRepository: sourceImageRepository,
-                  onImageSelected: (file) {
-                    setState(() {
-                      _firstImage = file;
-                      sourceImageRepository.palette = null;
-                      sourceImageRepository.paletteCopy = null;
-                    });
-                  },
-                  onRemoveImage: () {
-                    setState(() {
-                      _firstImage = null;
-                      sourceImageRepository.palette = null;
-                      sourceImageRepository.paletteCopy = null;
-                    });
-                  },
+    return Scaffold(
+        // appBar: AppBar(
+        //   title: const Text('Color Changer'),
+        //   actions: [
+        //     IconButton(
+        //         icon: Icon(Icons.settings),
+        //         onPressed: () {
+        //           Navigator.push(
+        //             context,
+        //             MaterialPageRoute(builder: (context) => SettingsPage()),
+        //           );
+        //         }),
+        //   ],
+        // ),
+        body: _isLoading
+            ? const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Center(child: CircularProgressIndicator.adaptive()),
+              )
+            : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ImageUploadSection(
+                      title: "Color Source Image",
+                      image: _firstImage,
+                      imageRepository: sourceImageRepository,
+                      onImageSelected: (file) {
+                        setState(() {
+                          _firstImage = file;
+                          sourceImageRepository.palette = null;
+                          sourceImageRepository.paletteCopy = null;
+                        });
+                      },
+                      onRemoveImage: () {
+                        setState(() {
+                          _firstImage = null;
+                          sourceImageRepository.palette = null;
+                          sourceImageRepository.paletteCopy = null;
+                        });
+                      },
+                    ),
+                    ImageUploadSection(
+                      title: "Target Image",
+                      image: _secondImage,
+                      imageRepository: targetImageRepository,
+                      onImageSelected: (file) {
+                        setState(() {
+                          _secondImage = file;
+                          targetImageRepository.palette = null;
+                          targetImageRepository.paletteCopy = null;
+                        });
+                      },
+                      onRemoveImage: () {
+                        setState(() {
+                          _secondImage = null;
+                          targetImageRepository.palette = null;
+                          targetImageRepository.paletteCopy = null;
+                        });
+                      },
+                    ),
+                    _buildGenerateButton(),
+                    if (_generatedImageData != null) _buildGeneratedImage(),
+                    if (_generatedImageData == null)
+                      const Text('Generated Image will be displayed here'),
+                  ],
                 ),
-                ImageUploadSection(
-                  title: "Target Image",
-                  image: _secondImage,
-                  imageRepository: targetImageRepository,
-                  onImageSelected: (file) {
-                    setState(() {
-                      _secondImage = file;
-                      targetImageRepository.palette = null;
-                      targetImageRepository.paletteCopy = null;
-                    });
-                  },
-                  onRemoveImage: () {
-                    setState(() {
-                      _secondImage = null;
-                      targetImageRepository.palette = null;
-                      targetImageRepository.paletteCopy = null;
-                    });
-                  },
-                ),
-                _buildGenerateButton(),
-                if (_generatedImageData != null) _buildGeneratedImage(),
-                if (_generatedImageData == null)
-                  const Text('Generated Image will be displayed here'),
-              ],
-            ),
-          );
+              ));
   }
 
   Widget _buildGenerateButton() {
@@ -317,11 +332,11 @@ class MyHomePageState extends State<MyHomePage> {
         var generatedImage = img.decodeImage(responseBody);
         return generatedImage;
       } else {
-        print(response.reasonPhrase);
+        debugPrint(response.reasonPhrase);
       }
       _isLoading = false;
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
       _isLoading = false;
     }
   }
@@ -363,11 +378,11 @@ class MyHomePageState extends State<MyHomePage> {
         var generatedImage = img.decodeImage(responseBody);
         return generatedImage;
       } else {
-        print(response.reasonPhrase);
+        debugPrint(response.reasonPhrase);
       }
       _isLoading = false;
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
       _isLoading = false;
     }
   }

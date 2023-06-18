@@ -23,10 +23,7 @@ class MyApp extends StatelessWidget {
       ),
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Color Changer')),
-        body: const MyHomePage(),
-      ),
+      home: const MyHomePage(),
     );
   }
 }

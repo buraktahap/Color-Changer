@@ -594,14 +594,6 @@ class _ExpansionTileV2State extends State<ExpansionTileV2>
     return _buildIcon(context);
   }
 
-  Widget? _buildTrailingIcon(BuildContext context) {
-    if (_effectiveAffinity(widget.controlAffinity) !=
-        ListTileControlAffinity.trailing) {
-      return null;
-    }
-    return _buildIcon(context);
-  }
-
   Widget _buildChildren(BuildContext context, Widget? child) {
     final ExpansionTileThemeData expansionTileTheme =
         ExpansionTileTheme.of(context);
