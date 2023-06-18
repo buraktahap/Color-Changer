@@ -112,7 +112,7 @@ class MyHomePageState extends State<MyHomePage> {
             },
             child: const Center(child: Text('Generate From Palette')),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           FilledButton(
             onPressed: () {
               setState(() {
