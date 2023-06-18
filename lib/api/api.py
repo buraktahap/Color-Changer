@@ -41,8 +41,8 @@ def color_transfer_with_palette():
 
 
    # Convert palettes to LAB color space
-    original_palette = [cv2.cvtColor(np.uint8([[np.array(color)]]) , cv2.COLOR_RGB2LAB)[0][0] for color in original_palette]
-    edited_palette = [cv2.cvtColor(np.uint8([[np.array(color)]]) , cv2.COLOR_RGB2LAB)[0][0] for color in edited_palette]
+    original_palette = [cv2.cvtColor(np.uint8([[np.array(color)]]) , cv2.COLOR_RGB2LAB)[0][0] for color in original_palette] # type: ignore
+    edited_palette = [cv2.cvtColor(np.uint8([[np.array(color)]]) , cv2.COLOR_RGB2LAB)[0][0] for color in edited_palette] # type: ignore
 
 
     # Cluster colors in the source image using original color palette

@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'edit_page.dart';
 
+// ignore: must_be_immutable
 class ImageUploadSection extends StatefulWidget {
   File? image;
   final void Function(File? file) onImageSelected;
