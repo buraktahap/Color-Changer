@@ -67,6 +67,7 @@ class MyHomePageState extends State<MyHomePage> {
                     ImageUploadSection(
                       title: "Color Source Image",
                       image: _firstImage,
+                      isSourceImage: true,
                       imageRepository: sourceImageRepository,
                       onImageSelected: (file) {
                         setState(() {
@@ -86,6 +87,7 @@ class MyHomePageState extends State<MyHomePage> {
                     ImageUploadSection(
                       title: "Target Image",
                       image: _secondImage,
+                      isSourceImage: false,
                       imageRepository: targetImageRepository,
                       onImageSelected: (file) {
                         setState(() {

@@ -83,8 +83,8 @@ def color_transfer_with_palette():
 
 @api.route('/convert', methods=['POST'])
 def color_transfer():
-    source_image: FileStorage = request.files['target_image']
-    target_image: FileStorage = request.files['source_image']
+    source_image: FileStorage = request.files['source_image']
+    target_image: FileStorage = request.files['target_image']
 
     # Load images and apply color transformation
     s = cv2.cvtColor(cv2.imdecode(np.frombuffer(source_image.read(), np.uint8), cv2.IMREAD_COLOR), cv2.COLOR_BGR2LAB)
@@ -100,25 +100,23 @@ def color_transfer():
     s_mean, s_std = get_mean_and_std(s)
     t_mean, t_std = get_mean_and_std(t)
 
-    # Apply color transfer
-    s = ((s - s_mean) * (t_std / s_std)) + t_mean
-    s = np.round(s).astype(np.float32)
-    s = np.clip(s, 0, 255)
+    t = ((t - t_mean) * (s_std / t_std)) + s_mean
+    t = np.round(t).astype(np.float32)
+    t = np.clip(t, 0, 255)
 
     # Convert back to 8-bit unsigned integer
-    s = s.astype(np.uint8)
+    t = t.astype(np.uint8)
 
-    s = cv2.cvtColor(t, cv2.COLOR_LAB2BGR)
+    t = cv2.cvtColor(t, cv2.COLOR_LAB2BGR)
+    
     # Convert array into bytes, and then save in memory file
-    is_success, im_buf_arr = cv2.imencode(".jpg", s)
+    is_success, im_buf_arr = cv2.imencode(".jpg", t)
     byte_im = io.BytesIO(im_buf_arr.tobytes())
     print(is_success)
 
-    # Return the image data in memory as file
-    byte_im.seek(0)
     return send_file(byte_im, mimetype='image/jpeg')
 
-@api.route('/convert_with_palette', methods=['POST'])
+@api.route('/convert_with_palette_video', methods=['POST'])
 def color_transfer_with_palette_to_video():
     # ensure required parameters are present
     if not all(key in request.files for key in ['target_video', 'source_image']):

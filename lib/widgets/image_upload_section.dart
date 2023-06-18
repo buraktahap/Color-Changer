@@ -17,6 +17,7 @@ import '../pages/edit_page.dart';
 
 class ImageUploadSection extends StatefulWidget {
   File? image;
+  final bool isSourceImage;
   final void Function(File? file) onImageSelected;
   final void Function() onRemoveImage;
   final String title;
@@ -29,6 +30,7 @@ class ImageUploadSection extends StatefulWidget {
     required this.onRemoveImage,
     required this.title,
     required this.imageRepository,
+    required this.isSourceImage,
   }) : super(key: key);
 
   @override
@@ -185,7 +187,7 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
                     if (widget.imageRepository.palette != null) ...[
                       const SizedBox(height: 8),
                       const Text('Color Palette:'),
-                      _buildPaletteColors(),
+                      if (widget.isSourceImage) _buildPaletteColors(),
                     ],
                   ],
                 )
