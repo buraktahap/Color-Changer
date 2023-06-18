@@ -40,9 +40,9 @@ def color_transfer_with_palette():
     s = cv2.cvtColor(cv2.imdecode(np.frombuffer(source_image.read(), np.uint8), cv2.IMREAD_COLOR), cv2.COLOR_BGR2LAB)
     t = cv2.cvtColor(cv2.imdecode(np.frombuffer(target_image.read(), np.uint8), cv2.IMREAD_COLOR), cv2.COLOR_BGR2LAB)
 
-    # Convert palettes to LAB color space
-    original_palette = [cv2.cvtColor(np.uint8([[np.array(color)]]) , cv2.COLOR_RGB2LAB)[0][0] for color in original_palette]
-    edited_palette = [cv2.cvtColor(np.uint8([[np.array(color)]]) , cv2.COLOR_RGB2LAB)[0][0] for color in edited_palette]
+   # Convert palettes to LAB color space
+    original_palette = [cv2.cvtColor(np.uint8([[np.array(color)]]) , cv2.COLOR_RGB2LAB)[0][0] for color in original_palette] # type: ignore
+    edited_palette = [cv2.cvtColor(np.uint8([[np.array(color)]]) , cv2.COLOR_RGB2LAB)[0][0] for color in edited_palette] # type: ignore
 
     # Map the source image pixels to the closest color in the original palette
     s_lab = s.copy().reshape((-1, 3))
