@@ -1,4 +1,4 @@
-import 'package:color_changer/shared_preferences_helper.dart';
+import 'package:color_changer/util/shared_preferences_helper.dart';
 import 'package:flutter/material.dart';
 
 String? baseUrl;

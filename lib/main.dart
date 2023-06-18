@@ -1,4 +1,4 @@
-import 'package:color_changer/home_page.dart';
+import 'package:color_changer/pages/home_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {

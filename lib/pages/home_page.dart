@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:color_changer/image_repository.dart';
-import 'package:color_changer/image_upload_section.dart';
-import 'package:color_changer/settings_page.dart';
+import 'package:color_changer/util/image_repository.dart';
+import 'package:color_changer/widgets/image_upload_section.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gallery_saver/gallery_saver.dart';
@@ -43,19 +42,19 @@ class MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        // appBar: AppBar(
-        //   title: const Text('Color Changer'),
-        //   actions: [
-        //     IconButton(
-        //         icon: Icon(Icons.settings),
-        //         onPressed: () {
-        //           Navigator.push(
-        //             context,
-        //             MaterialPageRoute(builder: (context) => SettingsPage()),
-        //           );
-        //         }),
-        //   ],
-        // ),
+        appBar: AppBar(
+          title: const Text('Color Changer'),
+          // actions: [
+          //   IconButton(
+          //       icon: Icon(Icons.settings),
+          //       onPressed: () {
+          //         Navigator.push(
+          //           context,
+          //           MaterialPageRoute(builder: (context) => SettingsPage()),
+          //         );
+          //       }),
+          // ],
+        ),
         body: _isLoading
             ? const Padding(
                 padding: EdgeInsets.all(8.0),

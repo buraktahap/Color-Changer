@@ -3,9 +3,9 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:color_changer/expansion_tile_v2.dart' as v2;
-import 'package:color_changer/home_page.dart';
-import 'package:color_changer/image_repository.dart';
+import 'package:color_changer/widgets/expansion_tile_v2.dart' as v2;
+import 'package:color_changer/pages/home_page.dart';
+import 'package:color_changer/util/image_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -13,7 +13,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'edit_page.dart';
+import '../pages/edit_page.dart';
 
 class ImageUploadSection extends StatefulWidget {
   File? image;
@@ -249,8 +249,8 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
               });
             },
             child: Container(
-              width: 15,
-              height: 15,
+              width: 25,
+              height: 25,
               color: color.color,
             ),
           ),
