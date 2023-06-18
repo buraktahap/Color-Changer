@@ -118,5 +118,86 @@ def color_transfer():
     byte_im.seek(0)
     return send_file(byte_im, mimetype='image/jpeg')
 
+@api.route('/convert_with_palette', methods=['POST'])
+def color_transfer_with_palette_to_video():
+    # ensure required parameters are present
+    if not all(key in request.files for key in ['target_video', 'source_image']):
+        return "Missing required file in request", 400
+    if not all(key in request.form for key in ['original_palette', 'edited_palette']):
+        return "Missing required form data in request", 400
+
+    target_video: FileStorage = request.files['target_video']
+    source_image: FileStorage = request.files['source_image']
+    original_palette = json.loads(request.form['original_palette'])  # receive original color palette
+    edited_palette = json.loads(request.form['edited_palette'])  # receive edited color palette
+
+    # Load the source image
+    source_image = cv2.imdecode(np.frombuffer(source_image.read(), np.uint8), cv2.IMREAD_COLOR)
+
+    # Convert palettes to LAB color space
+    original_palette_lab = [cv2.cvtColor(np.uint8([[np.array(color)]]), cv2.COLOR_RGB2LAB)[0][0] for color in original_palette] # type: ignore
+    edited_palette_lab = [cv2.cvtColor(np.uint8([[np.array(color)]]), cv2.COLOR_RGB2LAB)[0][0] for color in edited_palette] # type: ignore
+
+    # Open the target video file
+    target_video_path = 'target_video.mp4'
+    target_video.save(target_video_path)
+    target_video = cv2.VideoCapture(target_video_path)
+
+    # Get video properties
+    frame_width = int(target_video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(target_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = target_video.get(cv2.CAP_PROP_FPS)
+    total_frames = int(target_video.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    # Create output video writer
+    output_video_path = 'output_video.mp4'
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    output_video = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
+
+    # Process each frame of the target video
+    for frame_idx in range(total_frames):
+        ret, target_frame = target_video.read()
+        if not ret:
+            break
+
+        # Convert target frame to LAB color space
+        target_frame_lab = cv2.cvtColor(target_frame, cv2.COLOR_BGR2LAB)
+
+        # Map the source image pixels to the closest color in the original palette
+        source_frame_lab = source_image.reshape((-1, 3))
+        labels = pairwise_distances_argmin_min(source_frame_lab, original_palette_lab, metric='minkowski')[0]
+
+        # Map the original palette to the edited palette
+        palette_mapping = match_palette_to_edited_palette(original_palette_lab, edited_palette_lab)
+
+        # Map the source image pixels to the edited palette
+        source_mapped_flattened = np.array(edited_palette_lab)[palette_mapping[labels]]
+        source_mapped = source_mapped_flattened.reshape(source_image.shape)
+
+        # Calculate mean and standard deviation of source and target frames
+        source_mean, source_std = cv2.meanStdDev(source_mapped)
+        source_mean, source_std = np.array(source_mean).flatten(), np.array(source_std).flatten()
+
+        target_mean, target_std = cv2.meanStdDev(target_frame_lab)
+        target_mean, target_std = np.array(target_mean).flatten(), np.array(target_std).flatten()
+
+        # Apply color transfer
+        target_frame_lab = ((target_frame_lab - target_mean) * (source_std / target_std)) + source_mean
+        target_frame_lab = np.round(target_frame_lab).astype(np.float32)
+        target_frame_lab = np.clip(target_frame_lab, 0, 255)
+
+        # Convert back to BGR color space
+        target_frame_bgr = cv2.cvtColor(target_frame_lab.astype(np.uint8), cv2.COLOR_LAB2BGR)
+
+        # Write the modified frame to the output video
+        output_video.write(target_frame_bgr)
+
+    # Release resources
+    target_video.release()
+    output_video.release()
+
+    # Send the resulting video file as a response
+    return send_file(output_video_path, mimetype='video/mp4')
+
 if __name__ == '__main__':
     api.run(host='0.0.0.0', port=5003,debug=False)
