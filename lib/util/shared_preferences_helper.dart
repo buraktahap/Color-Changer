@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SharedPreferencesHelper {
-  static final String _baseUrlKey = 'baseUrl';
+  static const String _baseUrlKey = 'baseUrl';
 
   static Future<void> saveBaseUrl(String baseUrl) async {
     final prefs = await SharedPreferences.getInstance();

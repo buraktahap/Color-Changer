@@ -12,6 +12,8 @@ from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import LabelEncoder
 from scipy.spatial.distance import cdist
 
+
+
 api = Flask(__name__)
 
 def match_palette_to_edited_palette(original_palette, edited_palette):

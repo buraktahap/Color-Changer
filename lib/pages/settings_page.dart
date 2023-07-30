@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 String? baseUrl;
 
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  TextEditingController _baseUrlController = TextEditingController();
+  final TextEditingController _baseUrlController = TextEditingController();
 
   @override
   void initState() {
@@ -31,43 +33,45 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       baseUrl = baseUrl;
     });
-    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'),
+        title: const Text('Settings'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Base URL:',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextField(
               controller: _baseUrlController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Enter Base URL',
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _saveBaseUrl,
-              child: Text('Save'),
+              onPressed: () {
+                _saveBaseUrl;
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               'Current Base URL:',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(baseUrl ?? 'Not set'),
           ],
         ),

@@ -12,6 +12,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:video_player/video_player.dart';
 
 import '../pages/edit_page.dart';
 
@@ -42,6 +43,8 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
   bool isExpanded = false;
   final v2.ExpansionTileController expansionTileController =
       v2.ExpansionTileController();
+  VideoPlayerController? controller;
+
   void toggleExpansion() {
     setState(() {
       expansionTileController.expand();
@@ -58,6 +61,25 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
   void initState() {
     super.initState();
     loadImage();
+    // Initialize the controller only for video files
+    if (widget.image != null) {
+      if (widget.image!.path.toLowerCase().contains('.mov') ||
+          widget.image!.path.toLowerCase().contains('.mp4')) {
+        controller = VideoPlayerController.file(widget.image!);
+        controller!.addListener(() {
+          setState(() {});
+        });
+        controller!.setLooping(true);
+        controller!.initialize().then((_) => setState(() {}));
+        controller!.play();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
   }
 
   void loadImage() async {
@@ -90,152 +112,207 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: v2.ExpansionTileV2(
-        controller: expansionTileController,
-        onExpansionChanged: (value) {
-          setState(() {
-            isExpanded = value;
-          });
-        },
-        trailing: Transform.rotate(
-          angle: isExpanded ? pi : 0,
-          child: const Icon(Icons.keyboard_arrow_down_sharp),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-          side: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1,
-          ),
-        ),
-        childrenPadding: const EdgeInsets.all(8),
-        backgroundColor: Colors.grey.shade200,
-        collapsedBackgroundColor: Colors.grey.shade200,
-        maintainState: true,
-        collapsedShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
-        clipBehavior: Clip.antiAlias,
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        initiallyExpanded: true,
-        tilePadding: const EdgeInsets.all(8),
-        title: Text(
-            widget.image != null ? widget.title : "Select ${widget.title}"),
-        children: [
-          widget.image != null
-              ? Column(
-                  children: [
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(25),
-                          child: Image.file(widget.image!),
-                        ),
-                        Positioned(
-                          right: 0,
-                          child: IconButton(
-                            iconSize: 20,
-                            color: Colors.black,
-                            constraints: const BoxConstraints(
-                              minWidth: 30,
-                              minHeight: 30,
-                            ),
-                            style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all(
-                                  Colors.red.shade200),
-                              shape: MaterialStateProperty.all(
-                                const CircleBorder(),
-                              ),
-                              padding: MaterialStateProperty.all(
-                                const EdgeInsets.all(0),
-                              ),
-                            ),
-                            onPressed: () => widget.onRemoveImage(),
-                            icon: const Icon(Icons.close),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: IconButton(
-                            iconSize: 20,
-                            color: Colors.black,
-                            constraints: const BoxConstraints(
-                              minWidth: 30,
-                              minHeight: 30,
-                            ),
-                            style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all(
-                                  Colors.blue.shade200),
-                              shape: MaterialStateProperty.all(
-                                const CircleBorder(),
-                              ),
-                              padding: MaterialStateProperty.all(
-                                const EdgeInsets.all(0),
-                              ),
-                            ),
-                            onPressed: () => setState(() {
-                              _editImage();
-                            }),
-                            icon: const Icon(Icons.edit),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (widget.imageRepository.palette != null) ...[
-                      const SizedBox(height: 8),
-                      const Text('Color Palette:'),
-                      if (widget.isSourceImage) _buildPaletteColors(),
-                    ],
-                  ],
-                )
-              : Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => _pickImageFromGallery(context),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('Pick Image'),
-                                SizedBox(width: 8),
-                                Icon(Icons.photo),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => _pickImageFromCamera(context),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('Take Photo'),
-                                SizedBox(width: 8),
-                                Icon(Icons.camera_alt),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Select an image to get started.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+    return mounted
+        ? Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: v2.ExpansionTileV2(
+              controller: expansionTileController,
+              onExpansionChanged: (value) {
+                setState(() {
+                  isExpanded = value;
+                });
+              },
+              trailing: Transform.rotate(
+                angle: isExpanded ? pi : 0,
+                child: const Icon(Icons.keyboard_arrow_down_sharp),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+                side: BorderSide(
+                  color: Colors.grey.shade300,
+                  width: 1,
                 ),
-        ],
-      ),
-    );
+              ),
+              childrenPadding: const EdgeInsets.all(8),
+              backgroundColor: Colors.grey.shade200,
+              collapsedBackgroundColor: Colors.grey.shade200,
+              maintainState: true,
+              collapsedShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+              clipBehavior: Clip.antiAlias,
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              initiallyExpanded: true,
+              tilePadding: const EdgeInsets.all(8),
+              title: Text(widget.image != null
+                  ? widget.title
+                  : "Select ${widget.title}"),
+              children: [
+                widget.image != null
+                    ? Column(
+                        children: [
+                          Stack(
+                            children: [
+                              //file can be a video too. so we need to check if it is a video or not
+                              if (widget.image!.path
+                                      .toLowerCase()
+                                      .contains('.mov') ||
+                                  widget.image!.path
+                                      .toLowerCase()
+                                      .contains('.mp4'))
+                                controller != null &&
+                                        controller!.value.isInitialized
+                                    ? AspectRatio(
+                                        aspectRatio:
+                                            controller!.value.aspectRatio,
+                                        child: VideoPlayer(controller!),
+                                      )
+                                    : Container()
+                              else
+                                Image.file(widget.image!),
+
+                              Positioned(
+                                right: 0,
+                                child: IconButton(
+                                  iconSize: 20,
+                                  color: Colors.black,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 30,
+                                    minHeight: 30,
+                                  ),
+                                  style: ButtonStyle(
+                                    backgroundColor: MaterialStateProperty.all(
+                                        Colors.red.shade200),
+                                    shape: MaterialStateProperty.all(
+                                      const CircleBorder(),
+                                    ),
+                                    padding: MaterialStateProperty.all(
+                                      const EdgeInsets.all(0),
+                                    ),
+                                  ),
+                                  onPressed: () => widget.onRemoveImage(),
+                                  icon: const Icon(Icons.close),
+                                ),
+                              ),
+                              // Positioned(
+                              //   bottom: 0,
+                              //   right: 0,
+                              //   child: IconButton(
+                              //     iconSize: 20,
+                              //     color: Colors.black,
+                              //     constraints: const BoxConstraints(
+                              //       minWidth: 30,
+                              //       minHeight: 30,
+                              //     ),
+                              //     style: ButtonStyle(
+                              //       backgroundColor: MaterialStateProperty.all(
+                              //           Colors.blue.shade200),
+                              //       shape: MaterialStateProperty.all(
+                              //         const CircleBorder(),
+                              //       ),
+                              //       padding: MaterialStateProperty.all(
+                              //         const EdgeInsets.all(0),
+                              //       ),
+                              //     ),
+                              //     onPressed: () => setState(() {
+                              //       _editImage();
+                              //     }),
+                              //     icon: const Icon(Icons.edit),
+                              //   ),
+                              // ),
+                            ],
+                          ),
+                          if (widget.imageRepository.palette != null) ...[
+                            const SizedBox(height: 8),
+                            const Text('Color Palette:'),
+                            if (widget.isSourceImage) _buildPaletteColors(),
+                          ],
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      _pickImageFromGallery(context),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Pick Image'),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.photo),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      _pickImageFromCamera(context),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Take Photo'),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.camera_alt),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          //video
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      _pickVideoFromGallery(context),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Pick Video'),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.video_collection),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      _pickVideoFromCamera(context),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Take Video'),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.video_call),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Text(
+                            'Select an image to get started.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+              ],
+            ),
+          )
+        : Container();
   }
 
   Widget _buildPaletteColors() {
@@ -279,8 +356,9 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
   }
 
   Future<void> _pickImageFromCamera(BuildContext context) async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.camera);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+    );
     if (pickedFile != null) {
       File? imageFile = File(pickedFile.path);
       if (pickedFile.path.toLowerCase().endsWith('.heic') ||
@@ -293,6 +371,28 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
         _generatePalette(imageFile!);
       });
       editedPalette = widget.imageRepository.palette;
+    }
+  }
+
+  Future<void> _pickVideoFromGallery(BuildContext context) async {
+    final pickedFile =
+        await ImagePicker().pickVideo(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      File? videoFile = File(pickedFile.path);
+      setState(() {
+        widget.onImageSelected(videoFile);
+      });
+    }
+  }
+
+  Future<void> _pickVideoFromCamera(BuildContext context) async {
+    final pickedFile =
+        await ImagePicker().pickVideo(source: ImageSource.camera);
+    if (pickedFile != null) {
+      File? videoFile = File(pickedFile.path);
+      setState(() {
+        widget.onImageSelected(videoFile);
+      });
     }
   }
 
