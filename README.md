@@ -9,7 +9,7 @@ There are two generation options for creating the new image with transferred col
 
 The mobile application was made with Flutter and the color transfer algorithms were written in Python using Flask. The Python file is located in lib/api/api.py.
 
-If you want to run the project, make sure you have installed the Flutter and Python packages. In order to run successfully, you need to run both the api.py and main.dart files. Don't forget to check.k your emulators internet connection. Have great time!
+If you want to run the project, make sure you have installed the Flutter and Python packages. In order to run successfully, you need to run both the api.py and main.dart files. Don't forget to check your emulators internet connection. Have a great time!
 
 <table>
 	<tbody width="100%">
