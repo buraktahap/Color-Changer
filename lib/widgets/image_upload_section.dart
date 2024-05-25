@@ -181,12 +181,12 @@ class ImageUploadSectionState extends State<ImageUploadSection> {
                                     minHeight: 30,
                                   ),
                                   style: ButtonStyle(
-                                    backgroundColor: MaterialStateProperty.all(
+                                    backgroundColor: WidgetStateProperty.all(
                                         Colors.red.shade200),
-                                    shape: MaterialStateProperty.all(
+                                    shape: WidgetStateProperty.all(
                                       const CircleBorder(),
                                     ),
-                                    padding: MaterialStateProperty.all(
+                                    padding: WidgetStateProperty.all(
                                       const EdgeInsets.all(0),
                                     ),
                                   ),

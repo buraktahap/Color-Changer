@@ -4,10 +4,10 @@ import 'package:color_changer/util/image_repository.dart';
 import 'package:color_changer/widgets/image_upload_section.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:gallery_saver/gallery_saver.dart';
 import 'package:image/image.dart' as img;
 import 'package:palette_generator/palette_generator.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:saver_gallery/saver_gallery.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
 
@@ -165,11 +165,11 @@ class MyHomePageState extends State<MyHomePage> {
                   ),
                   style: ButtonStyle(
                     backgroundColor:
-                        MaterialStateProperty.all(Colors.red.shade200),
-                    shape: MaterialStateProperty.all(
+                        WidgetStateProperty.all(Colors.red.shade200),
+                    shape: WidgetStateProperty.all(
                       const CircleBorder(),
                     ),
-                    padding: MaterialStateProperty.all(
+                    padding: WidgetStateProperty.all(
                       const EdgeInsets.all(0),
                     ),
                   ),
@@ -289,9 +289,9 @@ class MyHomePageState extends State<MyHomePage> {
     }
 
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final generatedImagePath = '${directory.path}/generated_image.png';
-      await GallerySaver.saveImage(generatedImagePath).then(
+      await SaverGallery.saveImage(_generatedImageData!,
+              name: 'generated_image.png', androidExistNotSave: false)
+          .then(
         (value) => ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Image saved to gallery.')),
         ),
@@ -316,7 +316,7 @@ class MyHomePageState extends State<MyHomePage> {
     try {
       _isLoading = true;
       var request = http.MultipartRequest(
-          'POST', Uri.parse('http://127.0.0.1:5003/convert'));
+          'POST', Uri.parse('http://10.0.2.2:5003/convert'));
       request.files.add(
           await http.MultipartFile.fromPath('source_image', sourceImage.path));
       request.files.add(
@@ -327,10 +327,16 @@ class MyHomePageState extends State<MyHomePage> {
 
       if (response.statusCode == 200) {
         //response body is a Unit8List
-        var responseBody =
-            await responseStream.toBytes(); // Read the stream once
-        //convert the response body to an image
-        var generatedImage = img.decodeImage(responseBody);
+        final directory = await getApplicationDocumentsDirectory();
+        final generatedImagePath = '${directory.path}/generated_image.png';
+        final generatedImageFile = File(generatedImagePath);
+
+        // Write the response body to a file as it's received
+        await responseStream.pipe(generatedImageFile.openWrite());
+
+        // Load the image from the file
+        var generatedImage =
+            img.decodeImage(await generatedImageFile.readAsBytes());
         return generatedImage;
       } else {
         debugPrint(response.reasonPhrase);
@@ -342,49 +348,65 @@ class MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<http.MultipartRequest> createMultipartRequest(
+      String url,
+      File sourceImage,
+      File targetImage,
+      PaletteGenerator paletteColors,
+      PaletteGenerator editedColors) async {
+    var request = http.MultipartRequest('POST', Uri.parse(url));
+    request.files.add(
+        await http.MultipartFile.fromPath('source_image', sourceImage.path));
+    request.files.add(
+        await http.MultipartFile.fromPath('target_image', targetImage.path));
+
+    var originalPalette = paletteColors.colors
+        .map((color) => [color.red, color.green, color.blue])
+        .toList();
+    var editedPalette = editedColors.colors
+        .map((color) => [color.red, color.green, color.blue])
+        .toList();
+
+    var originalPaletteJson = jsonEncode(originalPalette);
+    var editedPaletteJson = jsonEncode(editedPalette);
+    request.fields['original_palette'] = originalPaletteJson;
+    request.fields['edited_palette'] = editedPaletteJson;
+
+    return request;
+  }
+
   Future uploadImageWithPalette(File sourceImage, File targetImage,
       PaletteGenerator paletteColors, PaletteGenerator editedColors) async {
-    try {
-      _isLoading = true;
-      var request = http.MultipartRequest(
-          'POST', Uri.parse('http://127.0.0.1:5003/convert_with_palette'));
-      request.files.add(
-          await http.MultipartFile.fromPath('source_image', sourceImage.path));
-      request.files.add(
-          await http.MultipartFile.fromPath('target_image', targetImage.path));
+    int retryCount = 0;
+    while (retryCount < 3) {
+      try {
+        _isLoading = true;
+        var request = await createMultipartRequest(
+            'http://10.0.2.2:5003/convert_with_palette',
+            sourceImage,
+            targetImage,
+            paletteColors,
+            editedColors);
 
-      // Convert the palettes to the correct format
-      var originalPalette = paletteColors.colors
-          .map((color) => [color.red, color.green, color.blue])
-          .toList();
-      var editedPalette = editedColors.colors
-          .map((color) => [color.red, color.green, color.blue])
-          .toList();
+        var streamedResponse = await request.send();
+        var response = await http.Response.fromStream(streamedResponse);
 
-      // Convert the palettes to JSON strings
-
-      var originalPaletteJson = jsonEncode(originalPalette);
-      var editedPaletteJson = jsonEncode(editedPalette);
-      request.fields['original_palette'] = originalPaletteJson;
-      request.fields['edited_palette'] = editedPaletteJson;
-
-      var response = await request.send();
-      var responseStream = response.stream;
-
-      if (response.statusCode == 200) {
-        //response body is a Unit8List
-        var responseBody =
-            await responseStream.toBytes(); // Read the stream once
-        //convert the response body to an image
-        var generatedImage = img.decodeImage(responseBody);
-        return generatedImage;
-      } else {
-        debugPrint(response.reasonPhrase);
+        if (response.statusCode == 200) {
+          var responseBody = response.bodyBytes;
+          var generatedImage = img.decodeImage(responseBody);
+          return generatedImage;
+        } else {
+          throw Exception(
+              'Server responded with status code: ${response.statusCode}. Reason: ${response.reasonPhrase}');
+        }
+      } catch (e) {
+        if (retryCount >= 2) {
+          throw Exception('Exception occurred: ${e.toString()}');
+        }
+        retryCount++;
+      } finally {
+        _isLoading = false;
       }
-      _isLoading = false;
-    } catch (e) {
-      debugPrint(e.toString());
-      _isLoading = false;
     }
   }
 }

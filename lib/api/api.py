@@ -112,7 +112,7 @@ def color_transfer():
     t = cv2.cvtColor(t, cv2.COLOR_LAB2BGR)
     
     # Convert array into bytes, and then save in memory file
-    is_success, im_buf_arr = cv2.imencode(".jpg", t)
+    is_success, im_buf_arr = cv2.imencode(".jpg", t, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
     byte_im = io.BytesIO(im_buf_arr.tobytes())
     print(is_success)
 
